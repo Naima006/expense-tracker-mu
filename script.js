@@ -1,93 +1,107 @@
-$(document).ready(function () {
-  let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+class ExpenseTracker {
+  constructor() {
+    this.balance = $("#balance");
+    this.money_plus = $("#money-plus");
+    this.money_minus = $("#money-minus");
+    this.list = $("#list");
+    this.form = $("#form");
+    this.text = $("#text");
+    this.amount = $("#amount");
+    this.category = $("#category");
+    this.transactionTypeInputs = $("input[name='transactionType']");
 
-  function updateValues() {
-    const amounts = transactions.map(t => t.amount);
-    const total = amounts.reduce((acc, val) => acc + val, 0).toFixed(2);
-    const income = amounts.filter(val => val > 0).reduce((acc, val) => acc + val, 0).toFixed(2);
-    const expense = (
-      amounts.filter(val => val < 0).reduce((acc, val) => acc + val, 0) * -1
-    ).toFixed(2);
+    this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
-    $("#balance").text(`$${total}`);
-    $("#money-plus").text(`+$${income}`);
-    $("#money-minus").text(`-$${expense}`);
+    this.init();
+    this.form.on("submit", this.addTransaction.bind(this));
   }
 
-  function getSelectedTransactionType() {
-    return $("input[name='transactionType']:checked").val() || "expense";
-  }
-
-  function addTransactionDOM(transaction) {
-    const sign = transaction.amount < 0 ? "-" : "+";
-    const typeClass = transaction.amount < 0 ? "minus" : "plus";
-
-    const $li = $(`
-      <li class="${typeClass}">
-        <div>
-          <strong>${transaction.text}</strong> <span class="category">(${transaction.category})</span>
-        </div>
-        <span>${sign}$${Math.abs(transaction.amount)}</span>
-        <button class="delete-btn">x</button>
-      </li>
-    `);
-
-    $li.find(".delete-btn").click(() => {
-      removeTransaction(transaction.id);
-    });
-
-    $("#list").append($li);
-  }
-
-  function removeTransaction(id) {
-    transactions = transactions.filter(t => t.id !== id);
-    updateLocalStorage();
-    init();
-  }
-
-  function updateLocalStorage() {
-    localStorage.setItem("transactions", JSON.stringify(transactions));
-  }
-
-  function init() {
-    $("#list").empty();
-    transactions.forEach(addTransactionDOM);
-    updateValues();
-  }
-
-  $("#form").submit(function (e) {
+  addTransaction(e) {
     e.preventDefault();
 
-    const text = $("#text").val().trim();
-    const amountVal = $("#amount").val().trim();
-    const category = $("#category").val().trim();
-
-    if (!text || !amountVal || !category) {
+    if (
+      this.text.val().trim() === "" ||
+      this.amount.val().trim() === "" ||
+      this.category.val().trim() === ""
+    ) {
       alert("Please enter text, amount, and category");
       return;
     }
 
-    let amount = Math.abs(+amountVal);
-    const type = getSelectedTransactionType();
-    if (type === "expense") amount = -amount;
+    let amt = Math.abs(+this.amount.val());
+    const type = this.getSelectedTransactionType();
+    if (type === "expense") amt = -amt;
 
     const transaction = {
       id: Date.now(),
-      text,
-      amount,
-      category,
+      text: this.text.val().trim(),
+      amount: amt,
+      category: this.category.val().trim(),
     };
 
-    transactions.push(transaction);
-    addTransactionDOM(transaction);
-    updateValues();
-    updateLocalStorage();
+    this.transactions.push(transaction);
+    this.addTransactionDOM(transaction);
+    this.updateValues();
+    this.updateLocalStorage();
 
-    // Clear form
-    $("#text").val("");
-    $("#amount").val("");
-    $("#category").val("");
-  });
+    // Clear inputs
+    this.text.val("");
+    this.amount.val("");
+    this.category.val("");
+  }
 
-  init();
-});
+  addTransactionDOM(transaction) {
+    const item = $("<li>").addClass(transaction.amount < 0 ? "minus" : "plus");
+
+    item.html(`
+      <div>
+        <strong>${transaction.text}</strong> <span class="category">(${transaction.category})</span>
+      </div>
+      <span>${transaction.amount < 0 ? "-" : "+"}$${Math.abs(transaction.amount)}</span>
+      <button class="delete-btn">x</button>
+    `);
+
+    item.find(".delete-btn").on("click", () => this.removeTransaction(transaction.id));
+
+    this.list.append(item);
+  }
+
+  updateValues() {
+    const amounts = this.transactions.map((t) => t.amount);
+    const total = amounts.reduce((acc, item) => acc + item, 0).toFixed(2);
+    const income = amounts
+      .filter((item) => item > 0)
+      .reduce((acc, item) => acc + item, 0)
+      .toFixed(2);
+    const expense = (
+      amounts.filter((item) => item < 0).reduce((acc, item) => acc + item, 0) * -1
+    ).toFixed(2);
+
+    this.balance.text(`$${total}`);
+    this.money_plus.text(`+$${income}`);
+    this.money_minus.text(`-$${expense}`);
+  }
+
+  getSelectedTransactionType() {
+    const selectedInput = this.transactionTypeInputs.filter(":checked");
+    return selectedInput.length ? selectedInput.val() : "expense";
+  }
+
+  removeTransaction(id) {
+    this.transactions = this.transactions.filter((t) => t.id !== id);
+    this.updateLocalStorage();
+    this.init();
+  }
+
+  updateLocalStorage() {
+    localStorage.setItem("transactions", JSON.stringify(this.transactions));
+  }
+
+  init() {
+    this.list.empty();
+    this.transactions.forEach(this.addTransactionDOM.bind(this));
+    this.updateValues();
+  }
+}
+
+const tracker = new ExpenseTracker();
