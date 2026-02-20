@@ -1,42 +1,42 @@
 class ExpenseTracker {
   constructor() {
-    this.balance = document.getElementById("balance");
-    this.money_plus = document.getElementById("money-plus");
-    this.money_minus = document.getElementById("money-minus");
-    this.list = document.getElementById("list");
-    this.form = document.getElementById("form");
-    this.text = document.getElementById("text");
-    this.amount = document.getElementById("amount");
-    this.category = document.getElementById("category");
-    this.transactionTypeInputs = document.getElementsByName("transactionType");
+    this.balance = $("#balance");
+    this.money_plus = $("#money-plus");
+    this.money_minus = $("#money-minus");
+    this.list = $("#list");
+    this.form = $("#form");
+    this.text = $("#text");
+    this.amount = $("#amount");
+    this.category = $("#category");
+    this.transactionTypeInputs = $("input[name='transactionType']");
 
     this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
     this.init();
-    this.form.addEventListener("submit", this.addTransaction.bind(this));
+    this.form.on("submit", this.addTransaction.bind(this));
   }
 
   addTransaction(e) {
     e.preventDefault();
 
     if (
-      this.text.value.trim() === "" ||
-      this.amount.value.trim() === "" ||
-      this.category.value.trim() === ""
+      this.text.val().trim() === "" ||
+      this.amount.val().trim() === "" ||
+      this.category.val().trim() === ""
     ) {
       alert("Please enter text, amount, and category");
       return;
     }
 
-    let amt = Math.abs(+this.amount.value);
+    let amt = Math.abs(+this.amount.val());
     const type = this.getSelectedTransactionType();
     if (type === "expense") amt = -amt;
 
     const transaction = {
       id: Date.now(),
-      text: this.text.value.trim(),
+      text: this.text.val().trim(),
       amount: amt,
-      category: this.category.value.trim(),
+      category: this.category.val().trim(),
     };
 
     this.transactions.push(transaction);
@@ -45,24 +45,25 @@ class ExpenseTracker {
     this.updateLocalStorage();
 
     // Clear inputs
-    this.text.value = "";
-    this.amount.value = "";
-    this.category.value = "";
+    this.text.val("");
+    this.amount.val("");
+    this.category.val("");
   }
 
   addTransactionDOM(transaction) {
-    const item = document.createElement("li");
-    item.classList.add(transaction.amount < 0 ? "minus" : "plus");
+    const item = $("<li>").addClass(transaction.amount < 0 ? "minus" : "plus");
 
-    item.innerHTML = `
+    item.html(`
       <div>
         <strong>${transaction.text}</strong> <span class="category">(${transaction.category})</span>
       </div>
       <span>${transaction.amount < 0 ? "-" : "+"}$${Math.abs(transaction.amount)}</span>
-      <button class="delete-btn" onclick="tracker.removeTransaction(${transaction.id})">x</button>
-    `;
+      <button class="delete-btn">x</button>
+    `);
 
-    this.list.appendChild(item);
+    item.find(".delete-btn").on("click", () => this.removeTransaction(transaction.id));
+
+    this.list.append(item);
   }
 
   updateValues() {
@@ -76,16 +77,14 @@ class ExpenseTracker {
       amounts.filter((item) => item < 0).reduce((acc, item) => acc + item, 0) * -1
     ).toFixed(2);
 
-    this.balance.innerText = `$${total}`;
-    this.money_plus.innerText = `+$${income}`;
-    this.money_minus.innerText = `-$${expense}`;
+    this.balance.text(`$${total}`);
+    this.money_plus.text(`+$${income}`);
+    this.money_minus.text(`-$${expense}`);
   }
 
   getSelectedTransactionType() {
-    for (const input of this.transactionTypeInputs) {
-      if (input.checked) return input.value;
-    }
-    return "expense";
+    const selectedInput = this.transactionTypeInputs.filter(":checked");
+    return selectedInput.length ? selectedInput.val() : "expense";
   }
 
   removeTransaction(id) {
@@ -99,7 +98,7 @@ class ExpenseTracker {
   }
 
   init() {
-    this.list.innerHTML = "";
+    this.list.empty();
     this.transactions.forEach(this.addTransactionDOM.bind(this));
     this.updateValues();
   }
